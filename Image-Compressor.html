@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Compressor Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f2f2;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    nav a {
+      color: white;
+      margin-left: 20px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    main {
+      padding: 40px;
+      text-align: center;
+    }
+    input[type="file"] {
+      margin: 20px auto;
+    }
+    canvas {
+      display: none;
+    }
+    .btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .btn:hover {
+      background-color: #218838;
+    }
+    .drop-zone {
+      border: 2px dashed #ccc;
+      padding: 30px;
+      border-radius: 10px;
+      background-color: #fff;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .drop-zone.dragover {
+      border-color: #28a745;
+    }
+    #progress {
+      margin-top: 20px;
+      display: none;
+      color: #555;
+    }
+    footer {
+      text-align: center;
+      padding: 15px;
+      background-color: #333;
+      color: white;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+    #qualityRange {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">ImageCompressor</div>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+  <main>
+    <h2>Select or Drop images to compress</h2>
+    <input type="file" id="imageInput" accept="image/*" multiple />
+    <div class="drop-zone" id="dropZone">Drop Images Here</div>
+    <p id="progress">Processing image...</p>
+    <select id="format">
+      <option value="jpeg">JPEG</option>
+      <option value="png">PNG</option>
+      <option value="webp">WebP</option>
+    </select>
+    <br />
+    <label for="qualityRange">Quality:</label>
+    <input type="range" id="qualityRange" min="0.1" max="1" step="0.1" value="0.7" />
+    <br />
+    <button class="btn" onclick="compressImages()">Compress Images</button>
+    <br />
+    <div id="downloadLinks"></div>
+    <canvas id="canvas"></canvas>
+  </main>
+  <footer>
+    &copy; 2025 ImageCompressor. All rights reserved.
+  </footer>
+
+  <script>
+    const fileInput = document.getElementById('imageInput');
+    const dropZone = document.getElementById('dropZone');
+    const progress = document.getElementById('progress');
+    const formatSelect = document.getElementById('format');
+    const qualitySlider = document.getElementById('qualityRange');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const downloadLinks = document.getElementById('downloadLinks');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      fileInput.files = e.dataTransfer.files;
+    });
+
+    function compressImages() {
+      const files = Array.from(fileInput.files);
+      if (files.length === 0) {
+        alert('Please select image files.');
+        return;
+      }
+
+      progress.style.display = 'block';
+      downloadLinks.innerHTML = '';
+
+      const format = formatSelect.value;
+      const mimeType = format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/jpeg';
+      const extension = format;
+      const quality = format === 'png' ? 1.0 : parseFloat(qualitySlider.value);
+
+      let processedCount = 0;
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onload = function (event) {
+          const img = new Image();
+          img.src = event.target.result;
+
+          img.onload = function () {
+            const MAX_WIDTH = 800;
+            const scaleSize = MAX_WIDTH / img.width;
+            const width = MAX_WIDTH;
+            const height = img.height * scaleSize;
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(function (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `compressed-${index + 1}.${extension}`;
+              link.textContent = `Download compressed-${index + 1}.${extension}`;
+              link.className = 'btn';
+              link.style.display = 'block';
+              downloadLinks.appendChild(link);
+
+              processedCount++;
+              if (processedCount === files.length) {
+                progress.style.display = 'none';
+              }
+            }, mimeType, quality);
+          };
+        };
+      });
+    }
+  </script>
+</body>
+</html>
